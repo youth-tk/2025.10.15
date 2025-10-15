@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ゴールドを賭けろ！じゃんけんゲーム</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f8ff;
+            color: #333;
+        }
+        #game-container {
+            text-align: center;
+            padding: 40px;
+            background-color: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            width: 90%;
+            max-width: 500px;
+        }
+        h1 {
+            color: #4682b4;
+            margin-bottom: 20px;
+        }
+        #gold-display {
+            font-size: 2em;
+            font-weight: bold;
+            color: #daa520;
+            margin: 20px 0;
+            transition: color 0.3s;
+        }
+        .controls, .choices {
+            margin-bottom: 20px;
+        }
+        label {
+            font-size: 1.1em;
+            margin-right: 10px;
+        }
+        #bet-amount {
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            width: 100px;
+            font-size: 1.1em;
+            text-align: center;
+        }
+        .choice-btn {
+            font-size: 2.5em;
+            padding: 15px;
+            margin: 0 10px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            transition: transform 0.2s;
+        }
+        .choice-btn:hover {
+            transform: scale(1.2);
+        }
+        #result-display {
+            font-size: 1.5em;
+            font-weight: bold;
+            min-height: 50px;
+            margin-top: 20px;
+        }
+        #computer-choice-display {
+            font-size: 1.2em;
+            color: #555;
+            min-height: 30px;
+        }
+        #game-over-message {
+            font-size: 2.5em;
+            font-weight: bold;
+            display: none; /* 初期状態では非表示 */
+        }
+        #restart-btn {
+            display: none; /* 初期状態では非表示 */
+            padding: 15px 30px;
+            font-size: 1.2em;
+            cursor: pointer;
+            background-color: #4682b4;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            margin-top: 20px;
+            transition: background-color 0.3s;
+        }
+        #restart-btn:hover {
+            background-color: #5a9bd3;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <h1>ゴールドを賭けろ！じゃんけんゲーム</h1>
+    <p>現在のゴールド</p>
+    <div id="gold-display">100 G</div>
+
+    <div id="game-controls">
+        <div class="controls">
+            <label for="bet-amount">賭け金:</label>
+            <input type="number" id="bet-amount" value="10" min="1">
+        </div>
+        <div class="choices">
+            <p>じゃんけんを選択してください</p>
+            <button class="choice-btn" onclick="play('rock')">✊</button>
+            <button class="choice-btn" onclick="play('scissors')">✌️</button>
+            <button class="choice-btn" onclick="play('paper')">✋</button>
+        </div>
+    </div>
+
+    <div id="result-display"></div>
+    <div id="computer-choice-display"></div>
+    
+    <div id="game-over-message"></div>
+    <button id="restart-btn" onclick="restartGame()">もう一度プレイ</button>
+</div>
+
+<script>
+    let userGold = 100;
+    const initialGold = 100;
+    const clearCondition = 500;
+
+    const goldDisplay = document.getElementById('gold-display');
+    const betAmountInput = document.getElementById('bet-amount');
+    const resultDisplay = document.getElementById('result-display');
+    const computerChoiceDisplay = document.getElementById('computer-choice-display');
+    const gameControls = document.getElementById('game-controls');
+    const gameOverMessage = document.getElementById('game-over-message');
+    const restartBtn = document.getElementById('restart-btn');
+
+    function play(userChoice) {
+        const betAmount = parseInt(betAmountInput.value, 10);
+
+        // --- バリデーションチェック ---
+        if (isNaN(betAmount) || betAmount <= 0) {
+            alert("有効な掛け金を入力してください。");
+            return;
+        }
+        if (betAmount > userGold) {
+            alert("所持ゴールドが足りません！");
+            return;
+        }
+
+        // --- コンピュータの手を決定 ---
+        const choices = ['rock', 'scissors', 'paper'];
+        const choiceIcons = { rock: '✊', scissors: '✌️', paper: '✋' };
+        const computerChoice = choices[Math.floor(Math.random() * choices.length)];
+
+        computerChoiceDisplay.textContent = `コンピュータの手: ${choiceIcons[computerChoice]}`;
+
+        // --- 勝敗判定 ---
+        if (userChoice === computerChoice) {
+            // あいこ
+            resultDisplay.textContent = "あいこ！";
+            resultDisplay.style.color = 'blue';
+            // ゴールドは変動なし
+        } else if (
+            (userChoice === 'rock' && computerChoice === 'scissors') ||
+            (userChoice === 'scissors' && computerChoice === 'paper') ||
+            (userChoice === 'paper' && computerChoice === 'rock')
+        ) {
+            // 勝ち
+            const winnings = betAmount * 2;
+            userGold += betAmount; // 掛け金を足して実質2倍にする
+            resultDisplay.textContent = `勝ち！ ${winnings}G GET!`;
+            resultDisplay.style.color = 'green';
+        } else {
+            // 負け
+            userGold -= betAmount;
+            resultDisplay.textContent = `負け... ${betAmount}G 失いました。`;
+            resultDisplay.style.color = 'red';
+        }
+
+        updateGold();
+        checkGameStatus();
+    }
+
+    function updateGold() {
+        goldDisplay.textContent = `${userGold} G`;
+    }
+
+    function checkGameStatus() {
+        if (userGold >= clearCondition) {
+            endGame(`🎉 ゲームクリア！ 🎉`, 'gold');
+        } else if (userGold <= 0) {
+            endGame('...ゲームオーバー...', 'red');
+        }
+    }
+    
+    function endGame(message, color) {
+        gameControls.style.display = 'none';
+        gameOverMessage.textContent = message;
+        gameOverMessage.style.color = color;
+        gameOverMessage.style.display = 'block';
+        restartBtn.style.display = 'block';
+    }
+
+    function restartGame() {
+        userGold = initialGold;
+        updateGold();
+
+        gameControls.style.display = 'block';
+        gameOverMessage.style.display = 'none';
+        restartBtn.style.display = 'none';
+        resultDisplay.textContent = '';
+        computerChoiceDisplay.textContent = '';
+        betAmountInput.value = 10;
+    }
+</script>
+
+</body>
+</html>
